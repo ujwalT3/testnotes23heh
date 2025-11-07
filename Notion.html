@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion - Notion IQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .notes-layout {
+            display: flex;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .notes-main {
+            flex: 2;
+        }
+        .important-points {
+            flex: 1;
+            background: rgba(10, 5, 20, 0.5);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(158, 0, 255, 0.3);
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+            display: none;
+        }
+        .important-points.visible {
+            display: block;
+        }
+        .important-points h3 {
+            color: #fff;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        .important-points ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .important-points li {
+            color: #e0e0e0;
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            line-height: 1.6;
+        }
+        .important-points li:before {
+            content: "•";
+            color: rgb(158, 0, 255);
+            position: absolute;
+            left: 0;
+            font-size: 1.5rem;
+        }
+        .point-number {
+            color: #9E00FF;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(158, 0, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #9E00FF;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #9E00FF, #BF6FFF);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Notion IQ</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="Notion.html" class="active">Notion</a></li>
+                <li><a href="signin.html">Sign In</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="notes-layout">
+            <div class="notes-main">
+                <div class="signin-page-wrapper">
+                    <div class="content-box reveal-on-scroll visible">
+                        <h2>Create Your Notes <span class="ai-badge">🤖 AI Powered</span></h2>
+                        
+                        <div id="quiz-container" class="quiz-content">
+                            <div id="file-upload-section">
+                                <p>Upload your notes or paste text to generate AI-powered insights and quizzes</p>
+                                <textarea id="notes-input" placeholder="Paste your notes here..." class="quiz-textarea"></textarea>
+                                <input type="file" id="file-upload" accept=".txt" class="file-input">
+                                <button id="analyze-notes" class="cta-button">
+                                    <span id="analyze-text">🤖 Analyze with AI</span>
+                                    <span id="analyze-loading" class="loading" style="display: none;"></span>
+                                </button>
+                                <button id="generate-quiz" class="cta-button" style="display: none;">
+                                    <span id="quiz-text">Generate Quiz</span>
+                                    <span id="quiz-loading" class="loading" style="display: none;"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <a href="index.html" class="back-link">&larr; Back to Home</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="important-points" id="important-points-section">
+                <h3>📝 AI-Extracted Key Points</h3>
+                <ul id="important-points-list">
+                    <li>Key concepts will appear here after AI analysis...</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const notesInput = document.getElementById('notes-input');
+        const fileUpload = document.getElementById('file-upload');
+        const analyzeBtn = document.getElementById('analyze-notes');
+        const generateQuizBtn = document.getElementById('generate-quiz');
+        const importantPointsSection = document.getElementById('important-points-section');
+        const importantPointsList = document.getElementById('important-points-list');
+        const analyzeText = document.getElementById('analyze-text');
+        const analyzeLoading = document.getElementById('analyze-loading');
+        const quizText = document.getElementById('quiz-text');
+        const quizLoading = document.getElementById('quiz-loading');
+
+        // File upload handler
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    notesInput.value = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Analyze notes with AI
+        analyzeBtn.addEventListener('click', async () => {
+            const notesText = notesInput.value.trim();
+            
+            if (notesText.length < 50) {
+                alert('Please enter at least 50 characters to analyze.');
+                return;
+            }
+
+            // Show loading
+            analyzeText.style.display = 'none';
+            analyzeLoading.style.display = 'inline-block';
+            analyzeBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ notes: notesText })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayImportantPoints(data.points);
+                    importantPointsSection.classList.add('visible');
+                    generateQuizBtn.style.display = 'inline-block';
+                    analyzeBtn.textContent = '🔄 Re-analyze with AI';
+                    
+                    // Store notes for quiz generation
+                    sessionStorage.setItem('quizNotes', notesText);
+                } else {
+                    alert(data.message || 'Failed to analyze notes');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Make sure the server is running!');
+            } finally {
+                analyzeText.style.display = 'inline-block';
+                analyzeLoading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayImportantPoints(points) {
+            importantPointsList.innerHTML = '';
+            
+            points.forEach((point, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span class="point-number">${index + 1}.</span>${point}`;
+                importantPointsList.appendChild(li);
+            });
+        }
+
+        // Generate quiz with AI
+        generateQuizBtn.addEventListener('click', async () => {
+            const notesText = notesInput.value.trim();
+            
+            // Show loading
+            quizText.style.display = 'none';
+            quizLoading.style.display = 'inline-block';
+            generateQuizBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/generate-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ notes: notesText })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store quiz questions
+                    sessionStorage.setItem('aiQuizQuestions', JSON.stringify(data.questions));
+                    window.location.href = 'quiz.html';
+                } else {
+                    alert(data.message || 'Failed to generate quiz');
+                    quizText.style.display = 'inline-block';
+                    quizLoading.style.display = 'none';
+                    generateQuizBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Make sure the server is running!');
+                quizText.style.display = 'inline-block';
+                quizLoading.style.display = 'none';
+                generateQuizBtn.disabled = false;
+            }
+        });
+    </script>
+    <script src="script.js" defer></script>
+</body>
+</html>
